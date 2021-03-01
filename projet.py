@@ -63,3 +63,33 @@ plt.scatter(X[:,0], X[:,1], c=kmeans.labels_, cmap='rainbow')
 plt.scatter(kmeans.cluster_centers_[:,0] ,kmeans.cluster_centers_[:,1], color='black')
 plt.title('clustering centroide avec le k-Means')
 plt.show()
+
+
+"""LinearRegression"""
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+x = np.array([50,10,40,24,10,
+              85,30,50,60,70]).reshape(-1,1)
+y = np.array([30,15,12,10,30
+            ,70,30,78,55,85]).reshape(-1,1)
+# Scatter
+plt.figure(figsize=[5,5])
+plt.scatter(x=x,y=y)
+plt.xlabel('')
+plt.ylabel('')
+plt.show()
+
+reg = LinearRegression()
+predict_space = np.linspace(min(x), max(x)).reshape(-1,1)
+reg.fit(x,y)
+predicted = reg.predict(predict_space)
+print('R^2 score: ',reg.score(x, y))
+# Plot regression line and scatter
+plt.plot(predict_space, predicted, color='red', linewidth=5)
+plt.scatter(x=x,y=y)
+plt.xlabel('pelvic_incidence')
+plt.ylabel('sacral_slope')
+plt.show()
