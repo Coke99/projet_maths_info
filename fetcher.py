@@ -102,16 +102,12 @@ def getNPArrays(paramX, paramY, startYear = 2010, endYear = 2020, log = False):
 		for index in range(0, len(x)):
 			x[index] = np.log(x[index])
 			y[index] = np.log(y[index])
-	
-	t1, t2 = createMatrix(x, y)
-	return t1, t2, np.array(x), np.array(y)
-	# return createMatrix(x, y), np.array(x), np.array(y)
+
+	return createMatrix(x, y), np.array(x), np.array(y)
 
 
 
 tab, x, y = getNPArrays("Cores", "Rpeak", 2020, 2020, log=True)
-
-print(tab)
 
 plt.scatter(tab[:,0], tab[:,1], label="True Position", s=2)
 plt.savefig("img/points_log2.png", bbox_inches = "tight")
