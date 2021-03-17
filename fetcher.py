@@ -7,14 +7,17 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import SpectralClustering
+from sklearn.linear_model import LinearRegression
+from scipy.cluster.hierarchy import dendrogram, linkage
 
 
 xlsNameToNumber = {
 	"Cores": 1,
  	"Rmax": 2,
 	"Rpeak": 3,
-	"Power": 5
+	"Power": 5 # 2008+
 }
+
 
 
 # returns a python array from top500_data
@@ -43,32 +46,115 @@ def createMatrix(xTab, yTab):
 	
 	for i in range(1, len(xTab)):
 		ret.append([xTab[i], yTab[i]])
-		
-	ret = np.array(ret)
-	return ret
+  
+
+	# ret2 = [[0 for x in range(len(ret))] for y in range(len(ret))] 
+	
+	# for i in range(len(ret)):
+		# for j in range(len(ret)):
+			# ret2[i][j] = np.sqrt((ret[j][0] - ret[i][0])**2 + (ret[j][1] - ret[i][1])**2)
+
+
+	# ret2 = np.array(ret2)
+	# ret2 = np.exp(- ret2** 2 / (2. * 1 ** 2))
+	# print(ret2)
+
+	print("Matrix created")
+	return np.array(ret)
+
+
+
+def purgeTabs(x, y):
+	
+	x1 = []
+	y1 = []
+	
+	toAdd = True
+	
+	for i in range(len(x)):
+		for j in range(len(x1)):
+			if(x1[j] == x[i] and y1[j] == y[j]):
+				toAdd = False
+				break
+		if toAdd:
+			x1.append(x[i])
+			y1.append(y[i])
+		else:
+			toAdd = True
+			
+	print("Removed", len(x) - len(x1), "duplicates")
+	return x1, y1
 
 
 # returns a 2D np.array from top500_data, given a time interval (inclusive) and 2 parameters
 # and the 2 np arrays corresponding to the specified parameters
 # currently:
-#	min year = 2010
+#	min year = 2000
 #	max year = 2020
 # 	params = ["Rpeak", "Rmax", "Cores", "Power"]
-def getNPArrays( paramX, paramY, startYear = 2010, endYear = 2020, log = False):
+def getNPArrays(paramX, paramY, startYear = 2010, endYear = 2020, log = False):
 	x = createTab(startYear, endYear, paramX)
 	y = createTab(startYear, endYear, paramY)
- 
+
+	x, y = purgeTabs(x, y)
+
 	if log:
 		for index in range(0, len(x)):
 			x[index] = np.log(x[index])
 			y[index] = np.log(y[index])
 	
-	return createMatrix(x, y), np.array(x), np.array(y)
+	t1, t2 = createMatrix(x, y)
+	return t1, t2, np.array(x), np.array(y)
+	# return createMatrix(x, y), np.array(x), np.array(y)
 
 
 
-tab, x, y = getNPArrays("Cores", "Rpeak", 2019, 2019)
-tab2, x2, y2 = getNPArrays("Cores", "Rpeak", 2019, 2019, log=True)
+tab, x, y = getNPArrays("Cores", "Rpeak", 2020, 2020, log=True)
+
+print(tab)
+
+plt.scatter(tab[:,0], tab[:,1], label="True Position", s=2)
+plt.savefig("img/points_log2.png", bbox_inches = "tight")
+
+
+plt.clf()
+
+#####
+# https://www.datatechnotes.com/2020/12/spectral-clustering-example-in-python.html
+#####
+
+
+clustering = SpectralClustering(n_clusters=2, assign_labels="kmeans", eigen_solver='amg', affinity="nearest_neighbors").fit(tab)
+plt.scatter(tab[:,0],tab[:,1], label="True Position", c = clustering.labels_, s=2)
+plt.savefig("img/spectral.png", bbox_inches = "tight") 
+
+
+
+"""
+
+labels = range(1, 11)
+
+for label, x, y in zip(labels, tab[:, 0], tab[:, 1]):
+	plt.annotate(
+		label,
+		xy=(x, y), xytext=(-3, 3),
+		textcoords='offset points', ha='right', va='bottom')
+
+linked = linkage(tab1, 'single')
+
+labelList = range(1, len(tab1)+1)
+
+plt.figure(figsize=(10, 7))
+dendrogram(linked,
+			orientation='top',
+			labels=labelList,
+			distance_sort='descending',
+			show_leaf_counts=True)
+plt.title('Hierarchical Clustering Dendrogram (truncated)')
+plt.xlabel('sample index or (taille du cluster)')
+plt.ylabel('distance')
+plt.savefig("img/hierarchy.png", bbox_inches = "tight") 
+plt.clf()
 
 
 plt.scatter(tab[:,0], tab[:,1], label="True Position", s=2)
@@ -91,21 +177,48 @@ plt.clf()
 
 
 
-kmeans = KMeans(n_clusters=2)
-kmeans.fit(tab2)
-plt.scatter(tab2[:,0],tab2[:,1], c=kmeans.labels_, cmap='rainbow', s=2)
+kmeans = KMeans(n_clusters=4)
+kmeans.fit(tab1)
+plt.scatter(tab[:,0],tab[:,1], c=kmeans.labels_, cmap='rainbow', s=2)
 plt.scatter(kmeans.cluster_centers_[:,0] ,kmeans.cluster_centers_[:,1], color='black')
 plt.savefig("img/kmeans.png", bbox_inches = "tight") 
 
 plt.clf()
 
-data = np.vstack([x2, y2]).T
+
+
+data = np.vstack([x, y]).T
 model = GaussianMixture (n_components=2).fit(data)
 plt.scatter(x2, y2, c=model.predict(data), s=2)
 plt.savefig("img/regression", bbox_inches = "tight") 
 
 plt.clf()
 
-clustering = SpectralClustering(n_clusters=2, assign_labels="discretize", random_state=0).fit_predict(tab2)
-plt.scatter(tab2[:,0],tab2[:,1], label="True Position", c = clustering, s=2)
+
+
+
+plt.clf()
+
+clustering = SpectralClustering(n_clusters=2, assign_labels="discretize", random_state=0, affinity="precomputed").fit_predict(tab2)
+plt.scatter(tab[:,0],tab[:,1], label="True Position", c = clustering, s=2)
 plt.savefig("img/spectral.png", bbox_inches = "tight") 
+
+
+
+
+x = x.reshape(-1,1)
+
+reg = LinearRegression()
+predict_space = np.linspace(min(x), max(x)).reshape(-1,1)
+reg.fit(x,y)
+predicted = reg.predict(predict_space)
+plt.plot(predict_space, predicted, color='red', linewidth=2)
+plt.scatter(x=x,y=y, s=2)
+plt.xlabel('pelvic_incidence')
+plt.ylabel('sacral_slope')
+plt.savefig("img/linreg.png", bbox_inches = "tight") 
+
+
+
+"""
+
